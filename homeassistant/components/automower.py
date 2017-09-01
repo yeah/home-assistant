@@ -97,7 +97,7 @@ class AutomowerDevice(Entity):
     @property
     def device_state_attributes(self):
         """Return the state attributes of the device."""
-        self._state
+        return self._state
     def update(self):
         """Update the state from the sensor."""
         _LOGGER.debug("Updating sensor: %s", self._name)
