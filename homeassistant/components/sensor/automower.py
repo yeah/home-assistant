@@ -47,8 +47,3 @@ class AutomowerSensor(AutomowerDevice, Entity):
     def state(self):
         """Return the state of the sensor."""
         return self._state['mowerStatus']
-
-    def update(self):
-        """Update the state from the sensor."""
-        _LOGGER.debug("Updating sensor: %s", self._name)
-        self._state = self._api.status()
