@@ -6,12 +6,15 @@ https://home-assistant.io/components/automower/
 """
 
 import copy
+import logging
 import voluptuous as vol
 
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, CONF_SCAN_INTERVAL
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import discovery
 from homeassistant.helpers.entity import Entity
+
+_LOGGER = logging.getLogger(__name__)
 
 REQUIREMENTS = ['pyhusmow==0.1']
 
@@ -98,6 +101,7 @@ class AutomowerDevice(Entity):
     def device_state_attributes(self):
         """Return the state attributes of the device."""
         return self._state
+
     def update(self):
         """Update the state from the sensor."""
         _LOGGER.debug("Updating sensor: %s", self._name)
