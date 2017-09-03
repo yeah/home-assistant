@@ -63,6 +63,7 @@ class AutomowerDeviceTracker(object):
                     last_location['latitude'],
                     last_location['longitude']),
                 attributes={
+                    'status': status['mowerStatus'],
                     'id': device_id,
                     'name': device['meta']['name'],
                     CONF_ICON: AUTOMOWER_ICON,
