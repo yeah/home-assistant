@@ -24,6 +24,10 @@ DEPENDENCIES = ['automower']
 
 SCAN_INTERVAL = timedelta(seconds=30)
 
+STATUS_ICONS = {
+    'ERROR': 'mdi:alert'
+}
+
 def setup_scanner(hass, config, see, discovery_info=None):
     """Set up the Husqvarna Automower tracker."""
     AutomowerDeviceTracker(
@@ -66,6 +70,6 @@ class AutomowerDeviceTracker(object):
                     'status': status['mowerStatus'],
                     'id': device_id,
                     'name': device['meta']['name'],
-                    CONF_ICON: AUTOMOWER_ICON,
+                    CONF_ICON: STATUS_ICONS.get(status['mowerStatus'], AUTOMOWER_ICON),
                     'vendor': AUTOMOWER_VENDOR,
                     'model': device['meta']['model']})
