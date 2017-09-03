@@ -9,6 +9,7 @@ import copy
 import logging
 import voluptuous as vol
 
+from datetime import datetime
 from homeassistant.const import CONF_ICON, CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import discovery
@@ -24,7 +25,12 @@ VENDOR = 'Husqvarna'
 
 # Add more states
 STATE_ICONS = {
-    'ERROR': 'mdi:alert'
+    'ERROR': 'mdi:alert',
+    'OK_CHARGING': 'mdi:power-plug'
+}
+
+ERROR_MESSAGES = {
+    1: 'Outside working area'
 }
 
 # TODO: Add more models
@@ -123,6 +129,22 @@ class AutomowerDevice(Entity):
         return self._state['mowerStatus']
 
     @property
+    def device_state_attributes(self):
+        """Return the state attributes of the device."""
+
+        attributes = self._state
+
+        # make some attributes more human readable
+        attributes['lastErrorMessage'] = ERROR_MESSAGES.get(attributes['lastErrorCode'])
+        attributes['storedTimestamp'] = attributes['storedTimestamp'] / 1000.0
+        for key in ['lastErrorCodeTimestamp', 'nextStartTimestamp', 'storedTimestamp']:
+            if key in attributes:
+                attributes[key] = datetime.utcfromtimestamp(attributes[key])
+
+        # remove attributes that are exposed via properties or irrelevant
+        return { k: v for k, v in attributes.items() if not k in IGNORED_API_STATE_ATTRIBUTES }
+
+    @property
     def battery(self):
         return self._state['batteryPercent']
 
@@ -133,16 +155,6 @@ class AutomowerDevice(Entity):
     @property
     def lon(self):
         return self._state['lastLocations'][0]['longitude']
-
-    @property
-    def battery(self):
-        return self._state['batteryPercent']
-
-    @property
-    def device_state_attributes(self):
-        """Return the state attributes of the device."""
-        # remove attributes that are exposed via properties or irrelevant
-        return { k: v for k, v in self._state.items() if not k in IGNORED_API_STATE_ATTRIBUTES }
 
     def set_see(self, see):
         self._see = see
