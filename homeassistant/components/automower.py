@@ -23,6 +23,7 @@ DOMAIN = 'automower'
 AUTOMOWER_API_CLIENT_HANDLE = 'automower'
 
 ICON = 'mdi:robot'
+VENDOR = 'Husqvarna'
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
