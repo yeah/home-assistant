@@ -9,7 +9,11 @@ from datetime import timedelta
 
 from homeassistant.const import ATTR_BATTERY_LEVEL, CONF_STATE, CONF_ICON
 from homeassistant.components.sensor import ENTITY_ID_FORMAT
-from homeassistant.components.automower import DOMAIN as AUTOMOWER_DOMAIN, ICON as AUTOMOWER_ICON, VENDOR as AUTOMOWER_VENDOR, AutomowerDevice
+from homeassistant.components.automower import (
+    DOMAIN as AUTOMOWER_DOMAIN,
+    ICON as AUTOMOWER_ICON,
+    VENDOR as AUTOMOWER_VENDOR,
+    AutomowerDevice)
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.event import track_utc_time_change
 from homeassistant.util import slugify
