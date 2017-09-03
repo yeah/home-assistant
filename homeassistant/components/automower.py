@@ -57,7 +57,9 @@ def setup(hass, base_config):
         return False
 
     for robot in robots:
-        hass.data[DOMAIN]['devices'].append({'meta': robot, 'api': api})
+        device_api = copy.copy(api)
+        device_api.select_robot(robot['id'])
+        hass.data[DOMAIN]['devices'].append({'meta': robot, 'api': device_api})
 
     for component in AUTOMOWER_COMPONENTS:
         discovery.load_platform(hass, component, DOMAIN, {}, base_config)
@@ -74,8 +76,7 @@ class AutomowerDevice(Entity):
         self._name = name
         self._model = model
         self._state = None
-        self._api = copy.copy(api)
-        self._api.select_robot(self._id)
+        self._api = api
 
     @property
     def id(self):
