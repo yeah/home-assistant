@@ -36,7 +36,7 @@ CONFIG_SCHEMA = vol.Schema({
 }, extra=vol.ALLOW_EXTRA)
 
 AUTOMOWER_COMPONENTS = [
-    'sensor'
+    'sensor', 'device_tracker'
 ]
 
 
