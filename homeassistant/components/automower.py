@@ -26,7 +26,8 @@ VENDOR = 'Husqvarna'
 # Add more states
 STATE_ICONS = {
     'ERROR': 'mdi:alert',
-    'OK_CHARGING': 'mdi:power-plug'
+    'OK_CHARGING': 'mdi:power-plug',
+    'PARKED_TIMER': 'mdi:timetable'
 }
 
 ERROR_MESSAGES = {
