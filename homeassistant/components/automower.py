@@ -31,7 +31,8 @@ STATE_ICONS = {
 }
 
 ERROR_MESSAGES = {
-    1: 'Outside working area'
+    1: 'Outside working area',
+    2: 'No loop signal'
 }
 
 # TODO: Add more models
