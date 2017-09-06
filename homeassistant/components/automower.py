@@ -27,7 +27,10 @@ VENDOR = 'Husqvarna'
 STATE_ICONS = {
     'ERROR': 'mdi:alert',
     'OK_CHARGING': 'mdi:power-plug',
-    'PARKED_TIMER': 'mdi:timetable'
+    'PARKED_TIMER': 'mdi:timetable',
+    'PARKED_PARKED_SELECTED': 'mdi:sleep',
+    'OK_SEARCHING': 'mdi:magnify',
+
 }
 
 ERROR_MESSAGES = {
