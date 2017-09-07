@@ -31,6 +31,7 @@ VENDOR = 'Husqvarna'
 STATUS_ERROR =                  'ERROR'
 STATUS_OK_CHARGING =            'OK_CHARGING'
 STATUS_OK_CUTTING =             'OK_CUTTING'
+STATUS_OK_LEAVING =             'OK_LEAVING'
 STATUS_OK_SEARCHING =           'OK_SEARCHING'
 STATUS_PARKED_TIMER =           'PARKED_TIMER'
 STATUS_PARKED_PARKED_SELECTED = 'PARKED_PARKED_SELECTED'
@@ -43,6 +44,7 @@ STATUSES = {
     STATUS_ERROR:                   { 'icon': 'mdi:alert',          'message': 'Error' },
     STATUS_OK_CHARGING:             { 'icon': 'mdi:power-plug',     'message': 'Charging' },
     STATUS_OK_CUTTING:              { 'icon': DEFAULT_ICON,         'message': 'Cutting' },
+    STATUS_OK_LEAVING:              { 'icon': DEFAULT_ICON,         'message': 'Leaving base' },
     STATUS_PAUSED:                  { 'icon': 'mdi:pause',          'message': 'Paused' },
     STATUS_PARKED_TIMER:            { 'icon': 'mdi:timetable',      'message': 'Parked due to timer' },
     STATUS_PARKED_PARKED_SELECTED:  { 'icon': 'mdi:sleep',          'message': 'Parked manually' },
@@ -224,7 +226,7 @@ class AutomowerDevice(VacuumDevice):
         """Return true if automower is starting, charging, cutting, or returning home."""
         return self._mower_status in [
             STATUS_EXECUTING_START, STATUS_OK_CHARGING,
-            STATUS_OK_CUTTING, STATUS_OK_SEARCHING]
+            STATUS_OK_CUTTING, STATUS_OK_LEAVING, STATUS_OK_SEARCHING]
 
     def turn_on(self, **kwargs):
         """Start the automower unless on."""
