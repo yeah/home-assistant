@@ -277,8 +277,8 @@ class AutomowerDevice(VacuumDevice):
         if self._stored_timestamp != self._state['storedTimestamp']:
             self._mower_status = self._state['mowerStatus']
             self._stored_timestamp = self._state['storedTimestamp']
-            if self._see is not None:
-                self.update_see()
+        if self._see is not None:
+            self.update_see()
 
     def update_see(self):
         """Update the device tracker."""
