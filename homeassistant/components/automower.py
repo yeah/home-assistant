@@ -11,55 +11,81 @@ import voluptuous as vol
 
 from datetime import datetime
 from homeassistant.const import CONF_ICON, CONF_PASSWORD, CONF_SCAN_INTERVAL, CONF_USERNAME
+from homeassistant.components.vacuum import (
+    SUPPORT_BATTERY, SUPPORT_PAUSE, SUPPORT_RETURN_HOME,
+    SUPPORT_STATUS, SUPPORT_STOP, SUPPORT_TURN_OFF,
+    SUPPORT_TURN_ON, VacuumDevice)
+
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import discovery
-from homeassistant.helpers.entity import Entity
 from homeassistant.util import slugify
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['pyhusmow==0.1']
-DOMAIN = 'automower'
 DEFAULT_ICON = 'mdi:robot'
+DOMAIN = 'automower'
+REQUIREMENTS = ['pyhusmow==0.1']
 VENDOR = 'Husqvarna'
 
-# Add more states
-STATE_ICONS = {
-    'ERROR': 'mdi:alert',
-    'OK_CHARGING': 'mdi:power-plug',
-    'PARKED_TIMER': 'mdi:timetable',
-    'PARKED_PARKED_SELECTED': 'mdi:sleep',
-    'OK_SEARCHING': 'mdi:magnify',
+# TODO: Add more statuses as we observe them
+STATUS_ERROR =                  'ERROR'
+STATUS_OK_CHARGING =            'OK_CHARGING'
+STATUS_OK_CUTTING =             'OK_CUTTING'
+STATUS_OK_SEARCHING =           'OK_SEARCHING'
+STATUS_PARKED_TIMER =           'PARKED_TIMER'
+STATUS_PARKED_PARKED_SELECTED = 'PARKED_PARKED_SELECTED'
+STATUS_PAUSED =                 'PAUSED'
+STATUS_EXECUTING_PARK =         'EXECUTING_PARK'
+STATUS_EXECUTING_START =        'EXECUTING_START'
+STATUS_EXECUTING_STOP =         'EXECUTING_STOP'
 
+STATUSES = {
+    STATUS_ERROR:                   { 'icon': 'mdi:alert',          'message': 'Error' },
+    STATUS_OK_CHARGING:             { 'icon': 'mdi:power-plug',     'message': 'Charging' },
+    STATUS_OK_CUTTING:              { 'icon': DEFAULT_ICON,         'message': 'Cutting' },
+    STATUS_PAUSED:                  { 'icon': 'mdi:pause',          'message': 'Paused' },
+    STATUS_PARKED_TIMER:            { 'icon': 'mdi:timetable',      'message': 'Parked due to timer' },
+    STATUS_PARKED_PARKED_SELECTED:  { 'icon': 'mdi:sleep',          'message': 'Parked manually' },
+    STATUS_OK_SEARCHING:            { 'icon': 'mdi:magnify',        'message': 'Searching base' },
+    STATUS_EXECUTING_START:         { 'icon': 'mdi:dots-horizontal','message': 'Starting...' },
+    STATUS_EXECUTING_STOP:          { 'icon': 'mdi:dots-horizontal','message': 'Stopping...' },
+    STATUS_EXECUTING_PARK:          { 'icon': 'mdi:dots-horizontal','message': 'Preparing to park...' }
 }
 
+# TODO: Add more error messages as we observe them
 ERROR_MESSAGES = {
-    1: 'Outside working area',
-    2: 'No loop signal',
+    1:  'Outside working area',
+    2:  'No loop signal',
+    10: 'Upside down',
     13: 'No drive'
 }
 
-# TODO: Add more models
+# TODO: Add more models as we observe them
 MODELS = {
     'H': 'Automower 450X'
 }
 
 IGNORED_API_STATE_ATTRIBUTES = [
+    'batteryPercent',
     'cachedSettingsUUID',
     'lastLocations',
+    'mowerStatus',
     'valueFound'
 ]
 
 AUTOMOWER_COMPONENTS = [
-    'sensor', 'device_tracker'
+    'device_tracker', 'vacuum'
 ]
+
+SUPPORTED_FEATURES = SUPPORT_TURN_ON | SUPPORT_TURN_OFF | SUPPORT_PAUSE | \
+                     SUPPORT_STOP | SUPPORT_RETURN_HOME | \
+                     SUPPORT_STATUS | SUPPORT_BATTERY
+
 
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
         vol.Required(CONF_USERNAME): cv.string,
-        vol.Required(CONF_PASSWORD): cv.string,
-        vol.Optional(CONF_SCAN_INTERVAL, default=30):
-            vol.All(cv.positive_int, vol.Clamp(min=30)),
+        vol.Required(CONF_PASSWORD): cv.string
     }),
 }, extra=vol.ALLOW_EXTRA)
 
@@ -89,19 +115,22 @@ def setup(hass, base_config):
     return True
 
 
-class AutomowerDevice(Entity):
+class AutomowerDevice(VacuumDevice):
     """Representation of an Automower device."""
 
     def __init__(self, meta, api):
         """Initialisation of the Automower device."""
-        _LOGGER.debug("Initializing Automower device: %s", meta['name'])
+        _LOGGER.debug("Initializing device: %s", meta['name'])
         self._id = meta['id']
         self._name = meta['name']
         self._model = meta['model']
         self._state = None
+        self._mower_status = None
+        self._stored_timestamp = None
         self._see = None
 
-        # select robot in api
+        # clone already authenticated api client and
+        # select automower for this instance
         self._api = copy.copy(api)
         self._api.select_robot(self._id)
 
@@ -112,6 +141,7 @@ class AutomowerDevice(Entity):
 
     @property
     def dev_id(self):
+        """Return the device id of the Automower (for device tracker)."""
         return slugify("{0}_{1}_{2}".format(DOMAIN, self._model, self._id))
 
     @property
@@ -126,51 +156,129 @@ class AutomowerDevice(Entity):
 
     @property
     def icon(self):
-        """Return the icon for the frontend."""
-        return STATE_ICONS.get(self.state, DEFAULT_ICON)
+        """Return the icon for the frontend based on the status."""
+        return STATUSES.get(self._mower_status, {}).get('icon', DEFAULT_ICON)
 
     @property
-    def state(self):
-        """Return the state of the sensor."""
-        return self._state['mowerStatus']
+    def status(self):
+        """Return the status of the automower as a nice formatted text."""
+        return STATUSES.get(self._mower_status, {}).get('message', self._mower_status)
 
     @property
     def device_state_attributes(self):
-        """Return the state attributes of the device."""
-
+        """Return the state attributes of the automower."""
         attributes = self._state
 
-        # make some attributes more human readable
-        attributes['lastErrorMessage'] = ERROR_MESSAGES.get(attributes['lastErrorCode'])
-        attributes['storedTimestamp'] = attributes['storedTimestamp'] / 1000.0
+        # Parse timestamps
         for key in ['lastErrorCodeTimestamp', 'nextStartTimestamp', 'storedTimestamp']:
             if key in attributes:
-                attributes[key] = datetime.utcfromtimestamp(attributes[key])
+                if isinstance(attributes[key], int):
+                    # Sometimes(tm), Husqvarna will return a timestamp in millis :(
+                    if attributes[key] > 999999999999:
+                        attributes[key] /= 1000.0
+                    attributes[key] = datetime.utcfromtimestamp(attributes[key])
 
-        # remove attributes that are exposed via properties or irrelevant
-        return { k: v for k, v in attributes.items() if not k in IGNORED_API_STATE_ATTRIBUTES }
+        # Ignore some unneeded attributes & format error messages
+        ignored_attributes = IGNORED_API_STATE_ATTRIBUTES
+        if attributes['lastErrorCode'] > 0:
+            attributes['lastErrorMessage'] = ERROR_MESSAGES.get(attributes['lastErrorCode'])
+        else:
+            ignored_attributes.extend(['lastErrorCode', 'lastErrorCodeTimestamp', 'lastErrorMessage'])
+        if attributes['nextStartSource'] == 'NO_SOURCE':
+            ignored_attributes.append('nextStartTimestamp')
+
+        return sorted({ k: v for k, v in attributes.items() if not k in ignored_attributes }.items())
 
     @property
     def battery(self):
+        """Return the battery level of the automower (for device_tracker)."""
         return self._state['batteryPercent']
 
     @property
+    def battery_level(self):
+        """Return the battery level of the automower (for vacuum)."""
+        return self.battery
+
+    @property
+    def supported_features(self):
+        """Flag supported features."""
+        return SUPPORTED_FEATURES
+
+    @property
     def lat(self):
+        """Return the current latitude of the automower."""
         return self._state['lastLocations'][0]['latitude']
 
     @property
     def lon(self):
+        """Return the current longitude of the automower."""
         return self._state['lastLocations'][0]['longitude']
+
+    @property
+    def should_poll(self):
+        """Automower devices need to be polled."""
+        return True
+
+    @property
+    def is_on(self):
+        """Return true if automower is starting, charging, cutting, or returning home."""
+        return self._mower_status in [
+            STATUS_EXECUTING_START, STATUS_OK_CHARGING,
+            STATUS_OK_CUTTING, STATUS_OK_SEARCHING]
+
+    def turn_on(self, **kwargs):
+        """Start the automower unless on."""
+        if not self.is_on:
+            _LOGGER.debug("Sending START command to: %s", self._name)
+            self._api.control('START')
+            self._mower_status = STATUS_EXECUTING_START
+            self.schedule_update_ha_state()
+
+    def turn_off(self, **kwargs):
+        """Stop the automower unless off."""
+        if self.is_on:
+            _LOGGER.debug("Sending STOP command to: %s", self._name)
+            self._api.control('STOP')
+            self._mower_status = STATUS_EXECUTING_STOP
+            self.schedule_update_ha_state()
+
+    def start_pause(self, **kwargs):
+        """Toggle the automower start/stop state."""
+        if self.is_on:
+            self.turn_off()
+        else:
+            self.turn_on()
+
+    def stop(self, **kwargs):
+        """Stop the automower (alias for turn_off)."""
+        self.turn_off()
+
+    def return_to_base(self, **kwargs):
+        """Park the automower."""
+        _LOGGER.debug("Sending PARK command to: %s", self._name)
+        self._api.control('PARK')
+        self._mower_status = STATUS_EXECUTING_PARK
+        self.schedule_update_ha_state()
+
 
     def set_see(self, see):
         self._see = see
 
     def update(self):
-        """Update the state from the sensor."""
-        _LOGGER.debug("Updating sensor: %s", self._name)
+        """Update the automower state using the API."""
+        _LOGGER.debug("Fetching state from API: %s", self._name)
         self._state = self._api.status()
-        if self._see is not None:
-            self.update_see()
+
+        # Do not update internal mower status and timestamp if
+        # stored timestamp equals the one we last saw.
+        # This allows for our internal STATUS_EXECUTING_* to
+        # remain active until there's an actual change from the
+        # API.
+        if self._stored_timestamp != self._state['storedTimestamp']:
+            self._mower_status = self._state['mowerStatus']
+            self._stored_timestamp = self._state['storedTimestamp']
+            if self._see is not None:
+                self.update_see()
 
     def update_see(self):
         """Update the device tracker."""
@@ -181,7 +289,7 @@ class AutomowerDevice(Entity):
             battery=self.battery,
             gps=(self.lat, self.lon),
             attributes={
-                'status': self.state,
+                'status': self.status,
                 'id': self.dev_id,
                 'name': self.name,
                 CONF_ICON: self.icon,
