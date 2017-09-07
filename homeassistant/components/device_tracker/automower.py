@@ -2,7 +2,7 @@
 Device Trackers for Husqvarna Automowers.
 
 For more details about this platform, please refer to the documentation at
-https://home-assistant.io/components/sensor.automower/
+https://home-assistant.io/components/device_tracker.automower/
 """
 
 from homeassistant.components.automower import DOMAIN as AUTOMOWER_DOMAIN
