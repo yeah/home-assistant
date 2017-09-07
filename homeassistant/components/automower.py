@@ -169,7 +169,7 @@ class AutomowerDevice(VacuumDevice):
     @property
     def device_state_attributes(self):
         """Return the state attributes of the automower."""
-        attributes = self._state
+        attributes = dict(self._state)
 
         # Parse timestamps
         for key in ['lastErrorCodeTimestamp', 'nextStartTimestamp', 'storedTimestamp']:
@@ -181,7 +181,7 @@ class AutomowerDevice(VacuumDevice):
                     attributes[key] = datetime.utcfromtimestamp(attributes[key])
 
         # Ignore some unneeded attributes & format error messages
-        ignored_attributes = IGNORED_API_STATE_ATTRIBUTES
+        ignored_attributes = list(IGNORED_API_STATE_ATTRIBUTES)
         if attributes['lastErrorCode'] > 0:
             attributes['lastErrorMessage'] = ERROR_MESSAGES.get(attributes['lastErrorCode'])
         else:
