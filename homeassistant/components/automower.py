@@ -64,7 +64,8 @@ ERROR_MESSAGES = {
 
 # TODO: Add more models as we observe them
 MODELS = {
-    'H': 'Automower 450X'
+    'H': 'Automower 450X',
+    'L': 'Automower 315'
 }
 
 IGNORED_API_STATE_ATTRIBUTES = [
