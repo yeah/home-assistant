@@ -164,8 +164,13 @@ class AutomowerDevice(VacuumDevice):
 
     @property
     def status(self):
-        """Return the status of the automower as a nice formatted text."""
+        """Return the status of the automower as a nice formatted text (for vacuum platform)."""
         return STATUSES.get(self._mower_status, {}).get('message', self._mower_status)
+
+    @property
+    def state(self):
+        """Return the state of the automower (same as status)."""
+        return self.status
 
     @property
     def device_state_attributes(self):
