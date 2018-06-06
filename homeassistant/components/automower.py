@@ -241,7 +241,7 @@ class AutomowerDevice(VacuumDevice):
         """Return true if automower is starting, charging, cutting, or returning home."""
         return self._mower_status in [
             STATUS_EXECUTING_START, STATUS_OK_CHARGING,
-            STATUS_OK_CUTTING, STATUS_OK_LEAVING, STATUS_OK_SEARCHING]
+            STATUS_OK_CUTTING, STATUS_OK_LEAVING, STATUS_OK_SEARCHING, STATUS_OK_CUTTING_MANUAL]
 
     def turn_on(self, **kwargs):
         """Start the automower unless on."""
