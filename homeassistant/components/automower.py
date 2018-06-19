@@ -72,6 +72,7 @@ ERROR_MESSAGES = {
 
 # TODO: Add more models as we observe them
 MODELS = {
+    'E': 'Automower 420',
     'G': 'Automower 430X',
     'H': 'Automower 450X',
     'L': 'Automower 315'
